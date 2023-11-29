@@ -1,0 +1,46 @@
+FROM node:20-alpine
+
+
+## To run this Docker container:
+## docker build -t yarntest . && docker run --rm -it yarntest
+
+
+## Record yarn version
+RUN mkdir -p /usr/src
+RUN echo -n "yarn version initial: " >> /usr/src/yarn.version && yarn -v >> /usr/src/yarn.version
+
+
+## Run corepack
+RUN corepack enable
+RUN echo -n "yarn version after corepack enable: " >> /usr/src/yarn.version && yarn -v >> /usr/src/yarn.version
+RUN corepack prepare yarn@stable --activate
+RUN echo -n "yarn version after corepack activate: " >> /usr/src/yarn.version && yarn -v >> /usr/src/yarn.version
+
+
+## Globally install yarn
+##
+## NOTE: 1.22.19 SUCCEEDS
+RUN npm install -g yarn@1.22.19 --force
+## NOTE: 1.22.20 FAILS
+## TODO: Uncomment the next line to see a failure on 1.22.20
+# RUN npm install -g yarn@1.22.20 --force
+## NOTE: 1.22.21 FAILS
+## TODO: Uncomment the next line to see a failure on 1.22.21
+# RUN npm install -g yarn@1.22.21 --force
+RUN echo -n "yarn version after global install: " >> /usr/src/yarn.version && yarn -v >> /usr/src/yarn.version
+
+
+## Make the package.json
+WORKDIR /usr/src
+RUN echo '{ "packageManager": "yarn@3.4.1", "scripts": { "test": "echo Yarn test works && yarn -v" } }' > package.json
+
+
+## Run "yarn install" to invoke yarn
+RUN echo -n "using yarn version: " >> /usr/src/yarn.version && yarn -v >> /usr/src/yarn.version
+## NOTE: This next comment is on one line so that the entire content will be displayed in the console on error
+## This will FAIL if yarn is 1.22.20+; in this case, comment out the next two lines and set the ENTRYPOINT to /bin/sh for diagnostic access
+RUN yarn install
+
+
+## Print the versions
+ENTRYPOINT /bin/cat yarn.version
